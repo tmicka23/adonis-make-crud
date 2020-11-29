@@ -1,6 +1,8 @@
 "use strict";
 
 const { Command } = require("@adonisjs/ace");
+const { modelTemplate } = require("../../templates/models.js");
+const { webController } = require("../../templates/webController.js");
 
 class Crud extends Command {
   static get signature() {
@@ -17,6 +19,7 @@ class Crud extends Command {
 
   async handle(args, options) {
     this.info(`you want to create a ${args.model} resource`);
+
     let again = true;
 
     const columns = [];
@@ -73,7 +76,56 @@ class Crud extends Command {
     } while (again);
 
     console.log(columns);
+    const modelCreated = await this.addModel(args.model);
+    const controllerCreated = await this.addController(args.model, columns);
+    if (modelCreated)
+      this.success(
+        `${this.icon("success")} A model ${args.model}, has been created`
+      );
+    if (controllerCreated)
+      this.success(
+        `${this.icon("success")} A web controller ${
+          args.model
+        }Controller, has been created`
+      );
   }
+
+  async addModel(name) {
+    try {
+      await this.generateFile(`app/Models/${name}.js`, modelTemplate, { name });
+
+      return new Promise((resolve) => resolve(true));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  async addController(name, columns) {
+    try {
+      const lowerCasedName = name.slice().toLowerCase();
+      const pluralizedName = lowerCasedName.slice() + "s";
+      const requiredColumns = columns.filter((c) => !c.nullable);
+      await this.generateFile(
+        `app/Controllers/http/web/${name}Controller.js`,
+        webController,
+        { name, lowerCasedName, pluralizedName, requiredColumns, columns }
+      );
+
+      return new Promise((resolve) => resolve(true));
+    } catch (error) {
+      console.error(error);
+    }
+  }
+
+  // async addRoutes(name) {
+  //   try {
+  //     await this.generateFile(`app/Models/${name}.js`, webController, { name });
+
+  //     return new Promise((resolve) => resolve(true));
+  //   } catch (error) {
+  //     console.error(error);
+  //   }
+  // }
 }
 
 module.exports = Crud;
