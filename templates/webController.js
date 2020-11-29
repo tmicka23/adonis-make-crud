@@ -19,7 +19,7 @@ module.exports = {
             })   
         }
         //method used for showing {{lowerCasedName}} based on id
-        async details({ params, view }) {
+        async show({ params, view }) {
             const {{lowerCasedName}} = await {{name}}.find(params.id)
             //redirecting to the details page
             return view.render('{{pluralizedName}}.details', {
@@ -28,7 +28,7 @@ module.exports = {
         }
     
         //method used for adding {{lowerCasedName}} into database
-        async add({ view }) {
+        async create({ view }) {
             //redirect to the add page
             return view.render('{{pluralizedName}}.add')
         }
