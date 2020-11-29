@@ -5,6 +5,7 @@ const { Command } = require("@adonisjs/ace");
 const { modelTemplate } = require("../../templates/models.js");
 const { webController } = require("../../templates/webController.js");
 const { migration } = require("../../templates/migration.js");
+const { index, show, create, edit } = require("../../templates/views.js");
 
 class Crud extends Command {
   static get signature() {
@@ -78,35 +79,86 @@ class Crud extends Command {
         });
       } while (again);
 
-      console.log(columns);
       const modelCreated = await this.addModel(args.model);
       const controllerCreated = await this.addController(args.model, columns);
       const routesCreated = await this.addRoutes(args.model);
       const migrationCreated = await this.addMigration(args.model, columns);
-      if (modelCreated)
+      const viewsCreated = await this.addViews(args.model, columns);
+
+      if (modelCreated) {
         this.success(
-          `${this.icon("success")} A model ${args.model}, has been created`
+          `${this.icon("success")} Create app/Models/${args.model}.js`
         );
-      if (controllerCreated)
+      }
+      if (controllerCreated) {
         this.success(
-          `${this.icon("success")} A web controller ${
+          `${this.icon("success")} Create app/Controllers/Http/${
             args.model
-          }Controller, has been created`
+          }Controller.js`
+        );
+      }
+
+      if (routesCreated) {
+        this.success(`${this.icon("success")} Update start/routes.js`);
+      }
+
+      if (migrationCreated) {
+        this.success(
+          `${this.icon("success")} Create database/migrations/${
+            migrationCreated.fileName
+          }`
+        );
+      }
+
+      if (viewsCreated) {
+        this.success(
+          `${this.icon(
+            "success"
+          )} Create resources/views/${args.model.toLowerCase()}s/index.edge`
+        );
+        this.success(
+          `${this.icon(
+            "success"
+          )} Create resources/views/${args.model.toLowerCase()}s/create.edge`
+        );
+        this.success(
+          `${this.icon(
+            "success"
+          )} Create resources/views/${args.model.toLowerCase()}s/show.edge`
+        );
+        this.success(
+          `${this.icon(
+            "success"
+          )} Create resources/views/${args.model.toLowerCase()}s/edit.edge`
+        );
+      }
+
+      if (
+        modelCreated &&
+        controllerCreated &&
+        routesCreated &&
+        migrationCreated &&
+        viewsCreated
+      ) {
+        console.log(
+          this.chalk.cyan(
+            "#######################################################"
+          )
+        );
+        this.success(
+          `${this.icon("success")} CRUD resource ${
+            args.model
+          } has been created successfully`
         );
 
-      if (routesCreated)
-        this.success(
-          `${this.icon("success")} Resourcefull routes for ${
-            args.model
-          } model, has been added to 'app/start/routes.js' file`
-        );
+        this.info(`${this.icon("info")} now run 'adonis migration:run'`);
 
-      if (migrationCreated)
-        this.success(
-          `${this.icon("success")} Migration file for ${
-            args.model
-          } model, has been created`
+        this.info(
+          `${this.icon(
+            "info"
+          )} you can see that resource at 'http://localhost:3333/${args.model.toLowerCase()}s`
         );
+      }
     } catch (error) {
       this.failed(
         this.chalk.red(` ${this.icon("error")} adonis make:crud`),
@@ -135,7 +187,7 @@ class Crud extends Command {
       const pluralizedName = lowerCasedName.slice() + "s";
       const requiredColumns = columns.filter((c) => !c.nullable);
       await this.generateFile(
-        `app/Controllers/Http/web/${name}Controller.js`,
+        `app/Controllers/Http/${name}Controller.js`,
         webController,
         { name, lowerCasedName, pluralizedName, requiredColumns, columns }
       );
@@ -152,7 +204,8 @@ class Crud extends Command {
       const pluralizedName = lowerCasedName.slice() + "s";
       fs.appendFile(
         "start/routes.js",
-        `Route.resource('${pluralizedName}', '${name}Controller');`,
+        `\n Route.resource('${pluralizedName}', '${name}Controller');
+        `,
         function (err) {
           if (err) throw err;
         }
@@ -168,15 +221,57 @@ class Crud extends Command {
     try {
       const lowerCasedName = name.slice().toLowerCase();
       const pluralizedName = lowerCasedName.slice() + "s";
+      const timestamp = Date.now();
       columns = columns.map((c) => ({
         ...c,
         type: c.type.toLowerCase(),
         nullable: c.nullable ? "nullable" : "notNullable",
       }));
       await this.generateFile(
-        `database/migrations/${Date.now()}_${name}sSchema.js`,
+        `database/migrations/${timestamp}_${name}sSchema.js`,
         migration,
         { name, lowerCasedName, pluralizedName, columns }
+      );
+
+      return new Promise((resolve) =>
+        resolve({ fileName: `${timestamp}_${name}sSchema.js` })
+      );
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  async addViews(name, columns) {
+    try {
+      const lowerCasedName = name.slice().toLowerCase();
+      const pluralizedName = lowerCasedName.slice() + "s";
+
+      await this.generateFile(
+        `resources/views/${pluralizedName}/index.edge`,
+        index,
+        { name, lowerCasedName, pluralizedName, columns },
+        ["<%", "%>"]
+      );
+
+      await this.generateFile(
+        `resources/views/${pluralizedName}/show.edge`,
+        show,
+        { name, lowerCasedName, pluralizedName, columns },
+        ["<%", "%>"]
+      );
+
+      await this.generateFile(
+        `resources/views/${pluralizedName}/create.edge`,
+        create,
+        { name, lowerCasedName, pluralizedName, columns },
+        ["$=", "=$"]
+      );
+
+      await this.generateFile(
+        `resources/views/${pluralizedName}/edit.edge`,
+        edit,
+        { name, lowerCasedName, pluralizedName, columns },
+        ["$=", "=$"]
       );
 
       return new Promise((resolve) => resolve(true));

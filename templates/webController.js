@@ -22,7 +22,7 @@ module.exports = {
         async show({ params, view }) {
             const {{lowerCasedName}} = await {{name}}.find(params.id)
             //redirecting to the details page
-            return view.render('{{pluralizedName}}.details', {
+            return view.render('{{pluralizedName}}.show', {
                 {{lowerCasedName}}
             })
         }
@@ -30,7 +30,7 @@ module.exports = {
         //method used for adding {{lowerCasedName}} into database
         async create({ view }) {
             //redirect to the add page
-            return view.render('{{pluralizedName}}.add')
+            return view.render('{{pluralizedName}}.create')
         }
     
         async store({ request, response, session }) {
